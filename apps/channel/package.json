@@ -1,0 +1,25 @@
+{
+  "name": "channel",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "bin": { "claude-imessage-channel": "./src/index.ts" },
+  "scripts": {
+    "dev": "node src/index.ts",
+    "start": "node src/index.ts",
+    "test": "node --test",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.4.1",
+    "eslint": "10.9.1",
+    "typescript": "7.0.2"
+  }
+}
