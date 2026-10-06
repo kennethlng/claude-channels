@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "imessage": { "command": "node", "args": ["/ABSOLUTE/PATH/TO/apps/channel/src/index.ts"] }
+  }
+}

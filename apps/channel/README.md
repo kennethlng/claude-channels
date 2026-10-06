@@ -1,0 +1,152 @@
+# `channel` — iMessage bridge for Claude Code
+
+## 1. What it is
+
+`channel` is a Claude Code "channel" — an MCP server that runs over stdio alongside
+a Claude Code session and bridges it to iMessage via Photon Cloud (`chat` / Spectrum
+Cloud) and the Vercel Chat SDK. It lets you text your running Claude Code session
+from iMessage and, more importantly, lets you **approve or deny permission prompts
+from your phone**: when the session wants to run a Bash command or other gated tool,
+a prompt with a 5-letter code is relayed to iMessage, and replying `yes <code>` or
+`no <code>` answers it — whichever of the terminal or your phone answers first wins.
+
+## 2. Prerequisites
+
+- Node.js **>= 24**.
+- A [Photon Cloud](https://app.photon.codes) project (gives you an iMessage-connected
+  phone number/account plus a project id/secret for the Chat SDK).
+- [ngrok](https://ngrok.com) (or another tunnel) to expose your local webhook
+  listener to Photon's cloud over HTTPS.
+- Claude Code itself, authenticated either with your claude.ai account or a Console
+  API key.
+
+## 3. Setup
+
+```bash
+pnpm install
+cp apps/channel/.env.example apps/channel/.env
+```
+
+Edit `apps/channel/.env` and fill in:
+
+| Variable | Meaning |
+| --- | --- |
+| `IMESSAGE_PROJECT_ID` | Your Photon Cloud project id (`app.photon.codes`). |
+| `IMESSAGE_PROJECT_SECRET` | Your Photon Cloud project secret. |
+| `WEBHOOK_PORT` | Local port the webhook listener binds to (default `8787`). |
+| `WEBHOOK_PUBLIC_URL` | The public HTTPS URL Photon will POST webhooks to — this is your ngrok URL. |
+| `WEBHOOK_SIGNING_SECRET` | HMAC secret used to verify inbound webhooks really came from Photon. |
+| `CHANNEL_ALLOWLIST` | Comma-separated iMessage handles (phone numbers/emails) allowed to drive the session or approve permissions. Everyone else is silently ignored. |
+| `PERMISSION_TTL_MINUTES` | How long a relayed permission prompt stays answerable from iMessage (default `15`). |
+| `CHANNEL_TRANSPORT` | `photon` for real iMessage, or `dev` for the local curl/SSE test transport (see §8). |
+
+Then:
+
+1. Start the tunnel: `ngrok http $WEBHOOK_PORT` (use the same port as `WEBHOOK_PORT`).
+2. Copy the `https://...ngrok...` forwarding URL ngrok prints.
+3. In the Photon dashboard, register that HTTPS URL as your project's webhook
+   target, and register/confirm the `WEBHOOK_SIGNING_SECRET` there too so Photon
+   signs its webhook deliveries with the same secret you put in `.env`.
+4. Set `WEBHOOK_PUBLIC_URL` in `.env` to that same ngrok URL.
+
+## 4. Register the channel
+
+Copy `example.mcp.json` to a `.mcp.json` in your project root (or merge it into
+`~/.claude.json` for a user-level channel), and replace the placeholder path with
+the **absolute** path to this package's `src/index.ts`:
+
+```json
+{
+  "mcpServers": {
+    "imessage": { "command": "node", "args": ["/absolute/path/to/apps/channel/src/index.ts"] }
+  }
+}
+```
+
+Claude Code spawns this file directly with `node` — there is no build step, so the
+path must point at the TypeScript source, not a compiled artifact.
+
+## 5. Run
+
+```bash
+claude --dangerously-load-development-channels
+```
+
+Then select/invoke the `imessage` channel (e.g. `server:imessage`) from within the
+session.
+
+**Important caveats:**
+
+- Custom channels are not yet on Anthropic's allowlist during this research
+  preview, so `--dangerously-load-development-channels` is **required** to load
+  this (or any) custom channel at all. Without it, Claude Code will not load
+  `.mcp.json` entries that define channels.
+- This flag only works in the **interactive** CLI. It is silently ignored when
+  running Claude Code non-interactively (e.g. under `-p`/`--print`).
+- On Team/Enterprise plans, loading custom channels is additionally gated by the
+  organization's `channelsEnabled` policy — if your org has it disabled, the flag
+  will not help.
+
+## 6. Permission approvals
+
+When the session needs to run a gated tool (e.g. Bash) and you're in manual
+permission mode, a prompt is relayed to iMessage containing a human-readable
+description of the tool call and a 5-letter code, e.g.:
+
+```
+Claude wants to run: rm -rf build/
+Reply "yes abcde" or "no abcde"
+```
+
+Reply from iMessage with `yes <code>` to allow it, or `no <code>` to deny it.
+Only replies from a sender in `CHANNEL_ALLOWLIST` are honored. The terminal's own
+confirmation dialog and the iMessage prompt race each other — whichever one you
+answer first (phone or keyboard) wins, and the other is closed out automatically.
+
+## 7. Troubleshooting
+
+- **A free ngrok URL changes every time you restart ngrok.** Each time that
+  happens you must re-register the new URL with Photon and update
+  `WEBHOOK_PUBLIC_URL`. Use an ngrok reserved/custom domain (paid) if you want a
+  stable URL across restarts.
+- **`/mcp` shows the channel as `failed`.** This usually means `loadConfig()`
+  threw (a required env var is missing/malformed) or the process crashed on
+  startup. Check the channel's stderr output, or re-run Claude Code with
+  `claude --debug` for more detail. Nothing from this process is ever written to
+  stdout — stdout is reserved for the MCP protocol itself — so all diagnostics
+  land on stderr.
+- **Messages or `yes`/`no` replies seem to be ignored.** Only senders listed in
+  `CHANNEL_ALLOWLIST` can send chat messages into the session or answer permission
+  prompts. Double check the handle format matches exactly what Photon reports as
+  the sender id (typically E.164 phone number or email).
+
+## 8. Local testing without a phone
+
+You don't need Photon, ngrok, or a phone to exercise most of this bridge. Set:
+
+```
+CHANNEL_TRANSPORT=dev
+CHANNEL_ALLOWLIST=me
+WEBHOOK_PORT=8787
+```
+
+then run the channel (`claude --dangerously-load-development-channels`, or just
+`node src/index.ts` directly to test the transport in isolation). The `DevBridge`
+listens on `http://127.0.0.1:$WEBHOOK_PORT` instead of talking to Photon.
+
+In a second terminal, watch the outbound stream (replies and permission prompts):
+
+```bash
+curl -N http://127.0.0.1:8787/events
+```
+
+In a third terminal, send an inbound chat message as an allowlisted sender:
+
+```bash
+curl -XPOST http://127.0.0.1:8787/ -d '{"conversationId":"c1","senderId":"me","text":"hi"}'
+```
+
+That message is delivered to the running session as a `<channel>` event, exactly
+as a real iMessage would be. Any `senderId` not in `CHANNEL_ALLOWLIST` is accepted
+by the HTTP endpoint (it still returns `200`) but is silently dropped before it
+reaches the session — nothing is relayed and nothing is logged as processed chat.
