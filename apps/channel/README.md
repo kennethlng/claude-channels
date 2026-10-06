@@ -10,7 +10,21 @@ from your phone**: when the session wants to run a Bash command or other gated t
 a prompt with a 5-letter code is relayed to iMessage, and replying `yes <code>` or
 `no <code>` answers it — whichever of the terminal or your phone answers first wins.
 
-## 2. Prerequisites
+## 2. Status / known limitations
+
+The **local, no-phone path** (`CHANNEL_TRANSPORT=dev`, the `DevBridge` described
+in §9) is tested end-to-end: the automated test suite (41/41 passing) covers it,
+and it has also been manually smoke-tested with `curl` against the dev
+transport as shown in §9.
+
+The **real Photon Cloud + iMessage + phone path** (`CHANNEL_TRANSPORT=photon`)
+has **not yet been manually verified end-to-end** by a human running a live
+`claude` CLI session against a real Photon Cloud account and a real phone.
+That verification is still outstanding — treat the real-iMessage path as
+implemented and unit/integration-tested, but not yet proven in live use,
+until someone runs it for real and this note is updated.
+
+## 3. Prerequisites
 
 - Node.js **>= 24**.
 - A [Photon Cloud](https://app.photon.codes) project (gives you an iMessage-connected
@@ -20,7 +34,7 @@ a prompt with a 5-letter code is relayed to iMessage, and replying `yes <code>` 
 - Claude Code itself, authenticated either with your claude.ai account or a Console
   API key.
 
-## 3. Setup
+## 4. Setup
 
 ```bash
 pnpm install
@@ -38,7 +52,7 @@ Edit `apps/channel/.env` and fill in:
 | `WEBHOOK_SIGNING_SECRET` | HMAC secret used to verify inbound webhooks really came from Photon. |
 | `CHANNEL_ALLOWLIST` | Comma-separated iMessage handles (phone numbers/emails) allowed to drive the session or approve permissions. Everyone else is silently ignored. |
 | `PERMISSION_TTL_MINUTES` | How long a relayed permission prompt stays answerable from iMessage (default `15`). |
-| `CHANNEL_TRANSPORT` | `photon` for real iMessage, or `dev` for the local curl/SSE test transport (see §8). |
+| `CHANNEL_TRANSPORT` | `photon` for real iMessage, or `dev` for the local curl/SSE test transport (see §9). |
 
 Then:
 
@@ -49,7 +63,7 @@ Then:
    signs its webhook deliveries with the same secret you put in `.env`.
 4. Set `WEBHOOK_PUBLIC_URL` in `.env` to that same ngrok URL.
 
-## 4. Register the channel
+## 5. Register the channel
 
 Copy `example.mcp.json` to a `.mcp.json` in your project root (or merge it into
 `~/.claude.json` for a user-level channel), and replace the placeholder path with
@@ -66,14 +80,17 @@ the **absolute** path to this package's `src/index.ts`:
 Claude Code spawns this file directly with `node` — there is no build step, so the
 path must point at the TypeScript source, not a compiled artifact.
 
-## 5. Run
+## 6. Run
 
 ```bash
-claude --dangerously-load-development-channels
+claude --dangerously-load-development-channels server:imessage
 ```
 
-Then select/invoke the `imessage` channel (e.g. `server:imessage`) from within the
-session.
+The channel name (`server:imessage`, matching the `"imessage"` key in
+`.mcp.json` above) is a direct argument to the flag — there is no separate
+step to select or invoke it from within the session. The channel registers
+as soon as the process starts with that argument. (If you registered the
+channel via a plugin instead, use the `plugin:<name>@<marketplace>` form.)
 
 **Important caveats:**
 
@@ -87,14 +104,16 @@ session.
   organization's `channelsEnabled` policy — if your org has it disabled, the flag
   will not help.
 
-## 6. Permission approvals
+## 7. Permission approvals
 
 When the session needs to run a gated tool (e.g. Bash) and you're in manual
 permission mode, a prompt is relayed to iMessage containing a human-readable
-description of the tool call and a 5-letter code, e.g.:
+description of the tool call, the raw command/input, and a 5-letter code, e.g.:
 
 ```
-Claude wants to run: rm -rf build/
+Claude wants to run Bash: Run shell command
+rm -rf build/
+
 Reply "yes abcde" or "no abcde"
 ```
 
@@ -103,7 +122,7 @@ Only replies from a sender in `CHANNEL_ALLOWLIST` are honored. The terminal's ow
 confirmation dialog and the iMessage prompt race each other — whichever one you
 answer first (phone or keyboard) wins, and the other is closed out automatically.
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 - **A free ngrok URL changes every time you restart ngrok.** Each time that
   happens you must re-register the new URL with Photon and update
@@ -115,12 +134,18 @@ answer first (phone or keyboard) wins, and the other is closed out automatically
   `claude --debug` for more detail. Nothing from this process is ever written to
   stdout — stdout is reserved for the MCP protocol itself — so all diagnostics
   land on stderr.
+- **`/mcp` shows the channel as broken in a way that doesn't match the above.**
+  Our own code never writes to stdout, but the third-party `chat` / Photon
+  adapter libraries run in the same process, whose stdout is reserved for the
+  MCP transport. An unexpected stdout write from one of those dependencies is
+  a rare but possible cause if the failure mode doesn't look like a
+  `loadConfig()`/startup crash.
 - **Messages or `yes`/`no` replies seem to be ignored.** Only senders listed in
   `CHANNEL_ALLOWLIST` can send chat messages into the session or answer permission
   prompts. Double check the handle format matches exactly what Photon reports as
   the sender id (typically E.164 phone number or email).
 
-## 8. Local testing without a phone
+## 9. Local testing without a phone
 
 You don't need Photon, ngrok, or a phone to exercise most of this bridge. Set:
 
@@ -130,9 +155,11 @@ CHANNEL_ALLOWLIST=me
 WEBHOOK_PORT=8787
 ```
 
-then run the channel (`claude --dangerously-load-development-channels`, or just
-`node src/index.ts` directly to test the transport in isolation). The `DevBridge`
-listens on `http://127.0.0.1:$WEBHOOK_PORT` instead of talking to Photon.
+then run the channel
+(`claude --dangerously-load-development-channels server:imessage`, or just
+`node src/index.ts` directly to test the transport in isolation). The
+`DevBridge` listens on `http://127.0.0.1:$WEBHOOK_PORT` instead of talking to
+Photon.
 
 In a second terminal, watch the outbound stream (replies and permission prompts):
 
