@@ -1,7 +1,27 @@
 {
   "name": "@kennethlng/claude-photon-channel",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Claude Code channel that bridges a running session to iMessage via Photon, with remote permission approval.",
+  "keywords": [
+    "claude-code",
+    "claude",
+    "mcp",
+    "imessage",
+    "photon",
+    "channel",
+    "chatops"
+  ],
+  "homepage": "https://github.com/kennethlng/claude-channels#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kennethlng/claude-channels.git",
+    "directory": "packages/photon-channel"
+  },
+  "bugs": {
+    "url": "https://github.com/kennethlng/claude-channels/issues"
+  },
+  "author": "Kenneth Ng (https://github.com/kennethlng)",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "claude-photon-channel": "./dist/index.js"
