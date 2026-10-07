@@ -44,8 +44,11 @@ already passes `claude plugin validate .`.)
 
 ## 3. Configure + run (end user)
 
-The installed channel reads config from `~/.claude/channels/photon/.env` (or the path
-in `CHANNEL_ENV_FILE`):
+Run `/photon:configure` in a Claude Code session (after installing the plugin) to
+scaffold `~/.claude/channels/photon/.env` with the keys below and `chmod 600` it,
+then open that file and fill in the values. Or create it by hand — the installed
+channel reads config from `~/.claude/channels/photon/.env` (or the path in
+`CHANNEL_ENV_FILE`):
 
 ```
 SPECTRUM_PROJECT_ID=...
