@@ -1,0 +1,6 @@
+{
+  "name": "photon",
+  "version": "0.1.0",
+  "description": "Chat with your running Claude Code session from iMessage and approve its permission prompts from your phone.",
+  "author": { "name": "Kenneth Ng" }
+}

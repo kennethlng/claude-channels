@@ -36,3 +36,6 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local MCP config (machine-specific absolute paths)
+.mcp.json

@@ -1,0 +1,12 @@
+{
+  "name": "kennethlng-channels",
+  "description": "Channels that bridge a running Claude Code session to messaging apps.",
+  "owner": { "name": "Kenneth Ng" },
+  "plugins": [
+    {
+      "name": "photon",
+      "source": "./plugins/photon",
+      "description": "iMessage via Photon, with remote permission approval."
+    }
+  ]
+}

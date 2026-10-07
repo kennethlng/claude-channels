@@ -1,11 +1,22 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "SPECTRUM_PROJECT_ID",
+    "SPECTRUM_PROJECT_SECRET",
+    "WEBHOOK_PORT",
+    "WEBHOOK_PUBLIC_URL",
+    "SPECTRUM_WEBHOOK_SECRET",
+    "CHANNEL_ALLOWLIST",
+    "PERMISSION_TTL_MINUTES",
+    "CHANNEL_INTEGRATION",
+    "CHANNEL_ENV_FILE"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"]
+      "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**", "dist/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
@@ -13,6 +24,7 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {},
     "dev": {
       "cache": false,
       "persistent": true

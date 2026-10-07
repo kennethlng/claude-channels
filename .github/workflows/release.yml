@@ -1,0 +1,41 @@
+name: Release
+
+# Publishes @kennethlng/claude-photon-channel to npm when you push a version tag
+# (e.g. `git tag v0.1.0 && git push --tags`). The tag's version should match the
+# `version` in packages/photon-channel/package.json.
+#
+# Requires a repo secret NPM_TOKEN (npm automation token with publish rights).
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: pnpm run check-types
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Publish to npm
+        run: pnpm --filter @kennethlng/claude-photon-channel publish --no-git-checks --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -1,26 +1,49 @@
-# Turborepo starter
+# claude-channels
 
-This Turborepo starter is maintained by the Turborepo core team.
+A pnpm/Turborepo monorepo for building developer tools around [Claude Code
+Channels](https://code.claude.com/docs/en/channels) — the research-preview
+feature that lets external messaging platforms push events into, and receive
+replies from, a running Claude Code session.
 
-## Using this example
+## What's here
 
-Run the following command:
+### `apps/channel` — iMessage bridge for Claude Code
 
-```sh
-npx create-turbo@latest
-```
+The main project in this repo. `channel` is a Claude Code channel (an MCP
+server that runs over stdio alongside a Claude Code session) that bridges the
+session to iMessage via [Photon Cloud](https://app.photon.codes) and the
+[Vercel Chat SDK](https://chat-sdk.dev). It lets you text a running Claude
+Code session from iMessage and — the primary feature — **approve or deny the
+session's tool-use permission prompts from your phone** instead of only from
+the local terminal.
 
-## What's inside?
+See [`apps/channel/README.md`](apps/channel/README.md) for setup,
+configuration, the `--dangerously-load-development-channels` caveat, and local
+testing instructions (no Photon account or phone required to try it out).
 
-This Turborepo includes the following packages/apps:
+The product is split across one app and three packages, so the Claude Code
+"channel half" and the messaging "integration half" meet only through a shared
+contract (the seam that keeps a future hosted relay or new integration a drop-in):
 
-### Apps and Packages
+- `apps/channel` — the composition root: loads config and wires an integration to the channel, started over stdio by Claude Code.
+- [`@repo/contract`](packages/contract) — the `ChannelBridge` interface, DTOs, verdict grammar, and the `Logger`/`Config` types. Zero dependencies; everything else depends only on this.
+- [`@repo/core`](packages/core) — the Claude Code channel half: MCP server, `ChannelCore` routing, permission-request tracking, logger. Never imports an integration.
+- [`@repo/integrations`](packages/integrations) — the messaging half: the iMessage/Photon integration, the local `DevBridge`, and shared helpers. Never imports core.
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+The design and implementation are documented in
+[`docs/superpowers/specs/`](docs/superpowers/specs/) and
+[`docs/superpowers/plans/`](docs/superpowers/plans/).
+
+### Scaffolding from `create-turbo`
+
+The rest of the repo is unmodified [Turborepo](https://turborepo.dev/)
+starter scaffolding, kept around for the shared tooling it provides:
+
+- `apps/web`, `apps/docs`: stub [Next.js](https://nextjs.org/) apps from the
+  starter template — not part of this project's actual functionality.
+- `@repo/ui`: a stub React component library shared by `web` and `docs`.
+- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`).
+- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo, including by `apps/channel`.
 
 Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
 
