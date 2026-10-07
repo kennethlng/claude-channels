@@ -1,4 +1,4 @@
-import type { BridgeHandlers, ChannelBridge, InboundMessage, PermissionPrompt } from '../bridge/types.ts'
+import type { BridgeHandlers, ChannelBridge, InboundMessage, PermissionPrompt } from '@repo/contract'
 
 export class FakeBridge implements ChannelBridge {
   sent: Array<{ conversationId: string; text: string }> = []

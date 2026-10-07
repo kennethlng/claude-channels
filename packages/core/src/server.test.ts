@@ -6,7 +6,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { z } from 'zod'
 import { createChannelServer } from './server.ts'
 import { PermissionStore } from './permissions.ts'
-import { FakeBridge } from '../testing/fake-bridge.ts'
+import { FakeBridge } from './testing/fake-bridge.ts'
 import { createLogger } from './logger.ts'
 
 const nullLog = () => createLogger([], new Writable({ write(_c, _e, cb) { cb() } }))
@@ -14,7 +14,7 @@ const nullLog = () => createLogger([], new Writable({ write(_c, _e, cb) { cb() }
 async function connectPair() {
   const bridge = new FakeBridge()
   const store = new PermissionStore(60_000, () => 0)
-  const { server, core, connect } = createChannelServer({ bridge, store, logger: nullLog() })
+  const { server, core, connect } = createChannelServer({ name: 'test', bridge, store, logger: nullLog() })
   await bridge.start({ onMessage: (m) => core.handleInbound(m) })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   const client = new Client({ name: 'test-claude-code', version: '0' }, { capabilities: {} })

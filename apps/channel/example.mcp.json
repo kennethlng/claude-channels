@@ -1,5 +1,5 @@
 {
   "mcpServers": {
-    "imessage": { "command": "node", "args": ["/ABSOLUTE/PATH/TO/apps/channel/src/index.ts"] }
+    "claude-channels": { "command": "node", "args": ["/ABSOLUTE/PATH/TO/apps/channel/src/index.ts"] }
   }
 }

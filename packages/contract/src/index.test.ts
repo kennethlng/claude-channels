@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseVerdictReply, formatVerdictInstruction } from './types.ts'
+import { parseVerdictReply, formatVerdictInstruction } from './index.ts'
 
 test('parses an allow verdict with surrounding whitespace and caps', () => {
   assert.deepEqual(parseVerdictReply('  Yes ABCDE '), { requestId: 'abcde', behavior: 'allow' })

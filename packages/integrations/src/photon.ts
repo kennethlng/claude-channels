@@ -3,10 +3,12 @@ import type { AddressInfo } from 'node:net'
 import { Chat } from 'chat'
 import { createiMessageAdapter } from '@photon-ai/chat-adapter-imessage'
 import { createMemoryState } from '@chat-adapter/state-memory'
-import type { BridgeHandlers, ChannelBridge, InboundMessage, PermissionPrompt } from '../bridge/types.ts'
-import type { Config } from '../config/env.ts'
-import type { Logger } from '../channel/logger.ts'
-import { Deduper, isAllowed, renderPrompt, verifyHmac } from './common.ts'
+import type { BridgeHandlers, ChannelBridge, InboundMessage, PermissionPrompt, Config, Logger } from '@repo/contract'
+import { BodyTooLargeError, Deduper, isAllowed, readBody, renderPrompt, verifyHmac } from './common.ts'
+
+// Photon "messages" webhooks are tiny JSON; cap the unauthenticated read well
+// above any real payload but far below what could exhaust the process.
+const MAX_WEBHOOK_BYTES = 1_000_000
 
 // ---------------------------------------------------------------------------
 // Research findings (Task 9, Step 1) — recorded 2026-10-06.
@@ -134,8 +136,8 @@ export function createPhotonBridge(config: Config, logger: Logger): ChannelBridg
     userName: 'claude-code',
     adapters: {
       imessage: createiMessageAdapter({
-        projectId: config.imessageProjectId,
-        projectSecret: config.imessageProjectSecret,
+        projectId: config.spectrumProjectId,
+        projectSecret: config.spectrumProjectSecret,
       }),
     },
     // `state` is required by the Chat SDK's types (thread subscriptions, locks,
@@ -164,7 +166,7 @@ export function createPhotonBridge(config: Config, logger: Logger): ChannelBridg
     if (ageSec > TIMESTAMP_TOLERANCE_SEC) return false
     const signatureHex = signatureHeader.slice(SIGNATURE_PREFIX.length)
     const signedPayload = `v0:${timestampHeader}:${rawBody}`
-    return verifyHmac(config.webhookSigningSecret, signedPayload, signatureHex)
+    return verifyHmac(config.spectrumWebhookSecret, signedPayload, signatureHex)
   }
 
   const handleWebhook = async (rawBody: string, signatureHeader: string, timestampHeader: string): Promise<void> => {
@@ -208,16 +210,26 @@ export function createPhotonBridge(config: Config, logger: Logger): ChannelBridg
           res.writeHead(404).end()
           return
         }
-        let raw = ''
-        req.on('data', (c) => (raw += c))
-        req.on('end', () => {
-          const signature = String(req.headers[SPECTRUM_SIGNATURE_HEADER] ?? '')
-          const timestamp = String(req.headers[SPECTRUM_TIMESTAMP_HEADER] ?? '')
-          res.writeHead(200).end('ok') // ack fast, then process async
-          handleWebhook(raw, signature, timestamp).catch((err) =>
-            logger.error('webhook handling failed', { error: err instanceof Error ? err.message : String(err) }),
-          )
-        })
+        readBody(req, MAX_WEBHOOK_BYTES).then(
+          (buf) => {
+            const raw = buf.toString('utf8')
+            const signature = String(req.headers[SPECTRUM_SIGNATURE_HEADER] ?? '')
+            const timestamp = String(req.headers[SPECTRUM_TIMESTAMP_HEADER] ?? '')
+            res.writeHead(200).end('ok') // ack fast, then process async
+            handleWebhook(raw, signature, timestamp).catch((err) =>
+              logger.error('webhook handling failed', { error: err instanceof Error ? err.message : String(err) }),
+            )
+          },
+          (err) => {
+            if (err instanceof BodyTooLargeError) {
+              logger.warn('rejected oversized webhook body')
+              res.writeHead(413).end('payload too large')
+            } else {
+              logger.error('failed reading webhook body', { error: err instanceof Error ? err.message : String(err) })
+              res.writeHead(400).end('bad request')
+            }
+          },
+        )
       })
       await new Promise<void>((resolve) => server!.listen(config.webhookPort, '127.0.0.1', resolve))
       const addr = server.address() as AddressInfo

@@ -12,12 +12,12 @@ a prompt with a 5-letter code is relayed to iMessage, and replying `yes <code>` 
 
 ## 2. Status / known limitations
 
-The **local, no-phone path** (`CHANNEL_TRANSPORT=dev`, the `DevBridge` described
+The **local, no-phone path** (`CHANNEL_INTEGRATION=dev`, the `DevBridge` described
 in §9) is tested end-to-end: the automated test suite (41/41 passing) covers it,
 and it has also been manually smoke-tested with `curl` against the dev
-transport as shown in §9.
+integration as shown in §9.
 
-The **real Photon Cloud + iMessage + phone path** (`CHANNEL_TRANSPORT=photon`)
+The **real Photon Cloud + iMessage + phone path** (`CHANNEL_INTEGRATION=photon`)
 has **not yet been manually verified end-to-end** by a human running a live
 `claude` CLI session against a real Photon Cloud account and a real phone.
 That verification is still outstanding — treat the real-iMessage path as
@@ -38,28 +38,30 @@ until someone runs it for real and this note is updated.
 
 ```bash
 pnpm install
-cp apps/channel/.env.example apps/channel/.env
+cp apps/channel/.env.example .env
 ```
 
-Edit `apps/channel/.env` and fill in:
+The channel loads its config from the first of these that exists: `$CHANNEL_ENV_FILE`,
+a `.env` in the directory you launch from, then `~/.claude/channels/photon/.env`.
+For clone-and-run, keep `.env` at the repo root and launch from there. Fill it in:
 
 | Variable | Meaning |
 | --- | --- |
-| `IMESSAGE_PROJECT_ID` | Your Photon Cloud project id (`app.photon.codes`). |
-| `IMESSAGE_PROJECT_SECRET` | Your Photon Cloud project secret. |
+| `SPECTRUM_PROJECT_ID` | Your Photon / Spectrum Cloud project id (`app.photon.codes`). |
+| `SPECTRUM_PROJECT_SECRET` | Your Photon / Spectrum Cloud project secret. |
 | `WEBHOOK_PORT` | Local port the webhook listener binds to (default `8787`). |
 | `WEBHOOK_PUBLIC_URL` | The public HTTPS URL Photon will POST webhooks to — this is your ngrok URL. |
-| `WEBHOOK_SIGNING_SECRET` | HMAC secret used to verify inbound webhooks really came from Photon. |
+| `SPECTRUM_WEBHOOK_SECRET` | HMAC secret used to verify inbound webhooks really came from Photon. |
 | `CHANNEL_ALLOWLIST` | Comma-separated iMessage handles (phone numbers/emails) allowed to drive the session or approve permissions. Everyone else is silently ignored. |
 | `PERMISSION_TTL_MINUTES` | How long a relayed permission prompt stays answerable from iMessage (default `15`). |
-| `CHANNEL_TRANSPORT` | `photon` for real iMessage, or `dev` for the local curl/SSE test transport (see §9). |
+| `CHANNEL_INTEGRATION` | `photon` for real iMessage, or `dev` for the local curl/SSE test integration (see §9). |
 
 Then:
 
 1. Start the tunnel: `ngrok http $WEBHOOK_PORT` (use the same port as `WEBHOOK_PORT`).
 2. Copy the `https://...ngrok...` forwarding URL ngrok prints.
 3. In the Photon dashboard, register that HTTPS URL as your project's webhook
-   target, and register/confirm the `WEBHOOK_SIGNING_SECRET` there too so Photon
+   target, and register/confirm the `SPECTRUM_WEBHOOK_SECRET` there too so Photon
    signs its webhook deliveries with the same secret you put in `.env`.
 4. Set `WEBHOOK_PUBLIC_URL` in `.env` to that same ngrok URL.
 
@@ -72,7 +74,7 @@ the **absolute** path to this package's `src/index.ts`:
 ```json
 {
   "mcpServers": {
-    "imessage": { "command": "node", "args": ["/absolute/path/to/apps/channel/src/index.ts"] }
+    "claude-channels": { "command": "node", "args": ["/absolute/path/to/apps/channel/src/index.ts"] }
   }
 }
 ```
@@ -83,10 +85,10 @@ path must point at the TypeScript source, not a compiled artifact.
 ## 6. Run
 
 ```bash
-claude --dangerously-load-development-channels server:imessage
+claude --dangerously-load-development-channels server:claude-channels
 ```
 
-The channel name (`server:imessage`, matching the `"imessage"` key in
+The channel name (`server:claude-channels`, matching the `"claude-channels"` key in
 `.mcp.json` above) is a direct argument to the flag — there is no separate
 step to select or invoke it from within the session. The channel registers
 as soon as the process starts with that argument. (If you registered the
@@ -136,7 +138,7 @@ answer first (phone or keyboard) wins, and the other is closed out automatically
   land on stderr.
 - **`/mcp` shows the channel as broken in a way that doesn't match the above.**
   Our own code never writes to stdout, but the third-party `chat` / Photon
-  adapter libraries run in the same process, whose stdout is reserved for the
+  integration libraries run in the same process, whose stdout is reserved for the
   MCP transport. An unexpected stdout write from one of those dependencies is
   a rare but possible cause if the failure mode doesn't look like a
   `loadConfig()`/startup crash.
@@ -150,14 +152,14 @@ answer first (phone or keyboard) wins, and the other is closed out automatically
 You don't need Photon, ngrok, or a phone to exercise most of this bridge. Set:
 
 ```
-CHANNEL_TRANSPORT=dev
+CHANNEL_INTEGRATION=dev
 CHANNEL_ALLOWLIST=me
 WEBHOOK_PORT=8787
 ```
 
 then run the channel
-(`claude --dangerously-load-development-channels server:imessage`, or just
-`node src/index.ts` directly to test the transport in isolation). The
+(`claude --dangerously-load-development-channels server:claude-channels`, or just
+`node src/index.ts` directly to test the integration in isolation). The
 `DevBridge` listens on `http://127.0.0.1:$WEBHOOK_PORT` instead of talking to
 Photon.
 

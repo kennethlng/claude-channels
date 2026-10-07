@@ -1,8 +1,10 @@
-import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import { createServer, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import type { BridgeHandlers, ChannelBridge, PermissionPrompt } from '../bridge/types.ts'
-import type { Logger } from '../channel/logger.ts'
-import { isAllowed, renderPrompt } from './common.ts'
+import type { BridgeHandlers, ChannelBridge, PermissionPrompt, Logger } from '@repo/contract'
+import { isAllowed, readBody, renderPrompt } from './common.ts'
+
+// The DevBridge is localhost-only, but keep the same bounded, UTF-8-safe read.
+const MAX_DEV_BODY_BYTES = 1_000_000
 
 export interface DevBridgeOptions {
   port: number
@@ -19,13 +21,6 @@ export function createDevBridge(opts: DevBridgeOptions): ChannelBridge & { addre
     const line = `data: ${JSON.stringify(payload)}\n\n`
     for (const res of subscribers) res.write(line)
   }
-
-  const readBody = (req: IncomingMessage): Promise<string> =>
-    new Promise((resolve) => {
-      let data = ''
-      req.on('data', (c: Buffer) => (data += c.toString('utf8')))
-      req.on('end', () => resolve(data))
-    })
 
   return {
     address() {
@@ -48,7 +43,7 @@ export function createDevBridge(opts: DevBridgeOptions): ChannelBridge & { addre
             return
           }
           if (req.method === 'POST') {
-            const raw = await readBody(req)
+            const raw = (await readBody(req, MAX_DEV_BODY_BYTES)).toString('utf8')
             let msg: { conversationId: string; senderId: string; text: string }
             try {
               msg = JSON.parse(raw)

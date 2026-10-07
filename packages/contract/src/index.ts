@@ -1,3 +1,7 @@
+// The seam: the ChannelBridge contract and the DTOs/grammar that cross it.
+// Zero runtime dependencies — both the Claude Code channel half (@repo/core)
+// and every integration (@repo/integrations) depend only on this.
+
 export interface InboundMessage {
   conversationId: string
   senderId: string
@@ -40,4 +44,26 @@ export function parseVerdictReply(text: string): PermissionVerdict | null {
 
 export function formatVerdictInstruction(requestId: string): string {
   return `Reply "yes ${requestId}" or "no ${requestId}"`
+}
+
+// --- Cross-cutting ports shared by every half ------------------------------
+
+/** Structured stderr logger. Implemented by @repo/core's createLogger. */
+export type LogFn = (msg: string, fields?: Record<string, unknown>) => void
+export interface Logger {
+  info: LogFn
+  warn: LogFn
+  error: LogFn
+}
+
+/** Validated runtime configuration. Built by apps/channel's loadConfig. */
+export interface Config {
+  integration: 'photon' | 'dev'
+  spectrumProjectId: string
+  spectrumProjectSecret: string
+  webhookPort: number
+  webhookPublicUrl: string
+  spectrumWebhookSecret: string
+  allowlist: string[]
+  permissionTtlMs: number
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import type { ChannelBridge, InboundMessage } from '../bridge/types.ts'
+import type { ChannelBridge, InboundMessage } from '@repo/contract'
 
 export interface BridgeDriver {
   bridge: ChannelBridge

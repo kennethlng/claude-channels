@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ChannelCore, type Notifier } from './core.ts'
 import { PermissionStore } from './permissions.ts'
-import { FakeBridge } from '../testing/fake-bridge.ts'
+import { FakeBridge } from './testing/fake-bridge.ts'
 import { createLogger } from './logger.ts'
 import { Writable } from 'node:stream'
 

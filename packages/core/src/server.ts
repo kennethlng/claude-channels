@@ -4,11 +4,10 @@ import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { z } from 'zod'
 import { ChannelCore, type Notifier } from './core.ts'
 import type { PermissionStore } from './permissions.ts'
-import type { Logger } from './logger.ts'
-import type { ChannelBridge } from '../bridge/types.ts'
+import type { Logger, ChannelBridge } from '@repo/contract'
 
 const INSTRUCTIONS =
-  'Messages arrive as <channel source="imessage" chat_id="..." sender="...">. ' +
+  'Messages arrive as <channel chat_id="..." sender="..."> tags. ' +
   'To reply, call the reply tool and pass the chat_id from the inbound tag. ' +
   'Permission prompts are handled out of band; do not mention request IDs to the user.'
 
@@ -23,6 +22,8 @@ const PermissionRequestSchema = z.object({
 })
 
 export interface ChannelServerDeps {
+  /** The channel's integration id (e.g. "photon", "dev"). Becomes the <channel source="..."> value. */
+  name: string
   bridge: ChannelBridge
   store: PermissionStore
   logger: Logger
@@ -34,7 +35,7 @@ export function createChannelServer(deps: ChannelServerDeps): {
   connect(transport: Transport): Promise<void>
 } {
   const server = new Server(
-    { name: 'imessage', version: '0.1.0' },
+    { name: deps.name, version: '0.1.0' },
     {
       capabilities: {
         experimental: { 'claude/channel': {}, 'claude/channel/permission': {} },
@@ -59,7 +60,7 @@ export function createChannelServer(deps: ChannelServerDeps): {
     tools: [
       {
         name: 'reply',
-        description: 'Send a message back over the iMessage channel',
+        description: 'Send a message back over this channel',
         inputSchema: {
           type: 'object',
           properties: {

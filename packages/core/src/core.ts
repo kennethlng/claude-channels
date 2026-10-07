@@ -1,6 +1,5 @@
-import { parseVerdictReply, type ChannelBridge, type InboundMessage, type PermissionPrompt } from '../bridge/types.ts'
+import { parseVerdictReply, type ChannelBridge, type InboundMessage, type PermissionPrompt, type Logger } from '@repo/contract'
 import type { PermissionStore } from './permissions.ts'
-import type { Logger } from './logger.ts'
 
 export interface Notifier {
   channelEvent(content: string, meta: Record<string, string>): Promise<void>

@@ -1,15 +1,6 @@
-export class ConfigError extends Error {}
+import type { Config } from '@repo/contract'
 
-export interface Config {
-  transport: 'photon' | 'dev'
-  imessageProjectId: string
-  imessageProjectSecret: string
-  webhookPort: number
-  webhookPublicUrl: string
-  webhookSigningSecret: string
-  allowlist: string[]
-  permissionTtlMs: number
-}
+export class ConfigError extends Error {}
 
 function required(env: NodeJS.ProcessEnv, key: string): string {
   const v = env[key]
@@ -18,7 +9,7 @@ function required(env: NodeJS.ProcessEnv, key: string): string {
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const transport = (env.CHANNEL_TRANSPORT ?? 'photon').trim() === 'dev' ? 'dev' : 'photon'
+  const integration = (env.CHANNEL_INTEGRATION ?? 'photon').trim() === 'dev' ? 'dev' : 'photon'
 
   const portRaw = required(env, 'WEBHOOK_PORT')
   const webhookPort = Number(portRaw)
@@ -36,25 +27,25 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new ConfigError(`PERMISSION_TTL_MINUTES must be a positive number, got "${env.PERMISSION_TTL_MINUTES}"`)
   }
 
-  if (transport === 'dev') {
+  if (integration === 'dev') {
     return {
-      transport, webhookPort, allowlist, permissionTtlMs: ttlMin * 60_000,
-      imessageProjectId: '', imessageProjectSecret: '', webhookPublicUrl: '', webhookSigningSecret: '',
+      integration, webhookPort, allowlist, permissionTtlMs: ttlMin * 60_000,
+      spectrumProjectId: '', spectrumProjectSecret: '', webhookPublicUrl: '', spectrumWebhookSecret: '',
     }
   }
 
   return {
-    transport,
-    imessageProjectId: required(env, 'IMESSAGE_PROJECT_ID'),
-    imessageProjectSecret: required(env, 'IMESSAGE_PROJECT_SECRET'),
+    integration,
+    spectrumProjectId: required(env, 'SPECTRUM_PROJECT_ID'),
+    spectrumProjectSecret: required(env, 'SPECTRUM_PROJECT_SECRET'),
     webhookPort,
     webhookPublicUrl: required(env, 'WEBHOOK_PUBLIC_URL'),
-    webhookSigningSecret: required(env, 'WEBHOOK_SIGNING_SECRET'),
+    spectrumWebhookSecret: required(env, 'SPECTRUM_WEBHOOK_SECRET'),
     allowlist,
     permissionTtlMs: ttlMin * 60_000,
   }
 }
 
 export function secretsOf(config: Config): string[] {
-  return [config.imessageProjectSecret, config.webhookSigningSecret].filter((s) => s.length > 0)
+  return [config.spectrumProjectSecret, config.spectrumWebhookSecret].filter((s) => s.length > 0)
 }

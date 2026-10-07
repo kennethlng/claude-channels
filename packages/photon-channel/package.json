@@ -1,0 +1,46 @@
+{
+  "name": "@kennethlng/claude-photon-channel",
+  "version": "0.1.0",
+  "description": "Claude Code channel that bridges a running session to iMessage via Photon, with remote permission approval.",
+  "type": "module",
+  "bin": {
+    "claude-photon-channel": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "prepublishOnly": "node esbuild.mjs",
+    "test": "node --test",
+    "lint": "eslint --max-warnings 0",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@chat-adapter/state-memory": "^4.41.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@photon-ai/chat-adapter-imessage": "^3.2.0",
+    "chat": "^4.41.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@repo/contract": "workspace:*",
+    "@repo/core": "workspace:*",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/integrations": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "26.4.1",
+    "esbuild": "0.25.0",
+    "typescript": "7.0.2",
+    "eslint": "10.9.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": "./dist/index.js"
+    }
+  }
+}

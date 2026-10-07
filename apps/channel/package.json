@@ -3,22 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "bin": {
-    "claude-imessage-channel": "./src/index.ts"
-  },
   "scripts": {
     "dev": "node src/index.ts",
     "start": "node src/index.ts",
-    "test": "node --test",
-    "lint": "eslint --max-warnings 0",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@chat-adapter/state-memory": "^4.41.1",
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "@photon-ai/chat-adapter-imessage": "^3.2.0",
-    "chat": "^4.41.1",
-    "zod": "^3.23.8"
+    "@kennethlng/claude-photon-channel": "workspace:*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",

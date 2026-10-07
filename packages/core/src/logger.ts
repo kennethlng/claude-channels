@@ -1,9 +1,4 @@
-export type LogFn = (msg: string, fields?: Record<string, unknown>) => void
-export interface Logger {
-  info: LogFn
-  warn: LogFn
-  error: LogFn
-}
+import type { Logger } from '@repo/contract'
 
 export function createLogger(
   secrets: string[],

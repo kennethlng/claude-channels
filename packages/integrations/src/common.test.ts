@@ -1,7 +1,31 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createHmac } from 'node:crypto'
-import { isAllowed, Deduper, verifyHmac, renderPrompt } from './common.ts'
+import { Readable } from 'node:stream'
+import type { IncomingMessage } from 'node:http'
+import { isAllowed, Deduper, verifyHmac, renderPrompt, readBody, BodyTooLargeError } from './common.ts'
+
+function fakeReq(chunks: Buffer[]): IncomingMessage {
+  return Readable.from(chunks) as unknown as IncomingMessage
+}
+
+test('readBody concatenates chunks within the limit', async () => {
+  const buf = await readBody(fakeReq([Buffer.from('hello '), Buffer.from('world')]), 1000)
+  assert.equal(buf.toString('utf8'), 'hello world')
+})
+
+test('readBody preserves a multibyte char split across chunks', async () => {
+  // 'é' is bytes 0xC3 0xA9 — decoding each chunk separately would corrupt it.
+  const buf = await readBody(fakeReq([Buffer.from([0xc3]), Buffer.from([0xa9])]), 1000)
+  assert.equal(buf.toString('utf8'), 'é')
+})
+
+test('readBody rejects a body over the limit', async () => {
+  await assert.rejects(
+    () => readBody(fakeReq([Buffer.from('x'.repeat(50)), Buffer.from('y'.repeat(60))]), 64),
+    BodyTooLargeError,
+  )
+})
 
 test('isAllowed is an exact match, default deny', () => {
   assert.equal(isAllowed(['+15551234567'], '+15551234567'), true)

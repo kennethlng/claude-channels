@@ -1,12 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { Writable } from 'node:stream'
 import { createDevBridge } from './dev.ts'
-import { runBridgeContract, type BridgeDriver } from './contract.ts'
-import { createLogger } from '../channel/logger.ts'
-import type { BridgeHandlers, ChannelBridge } from '../bridge/types.ts'
+import { runBridgeContract, type BridgeDriver } from './bridge-contract.ts'
+import type { BridgeHandlers, ChannelBridge, Logger } from '@repo/contract'
 
-const nullLog = () => createLogger([], new Writable({ write(_c, _e, cb) { cb() } }))
+const nullLog = (): Logger => ({ info() {}, warn() {}, error() {} })
 
 async function post(base: string, body: unknown) {
   return fetch(base + '/', { method: 'POST', body: JSON.stringify(body) })
