@@ -1,5 +1,5 @@
 {
-  "name": "claude-channels",
+  "name": "kennethlng-channels",
   "description": "Channels that bridge a running Claude Code session to messaging apps.",
   "owner": { "name": "Kenneth Ng" },
   "plugins": [

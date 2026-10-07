@@ -36,7 +36,7 @@ Push it to GitHub, then anyone installs with:
 
 ```bash
 claude plugin marketplace add <your-gh-user>/<this-repo>
-claude plugin install photon@claude-channels
+claude plugin install photon@kennethlng-channels
 ```
 
 (Local dev without hosting: `claude plugin marketplace add .` from the repo root —
@@ -60,7 +60,7 @@ Then run a tunnel (`ngrok http 8787`), register the URL + secret in the Photon
 dashboard, and start Claude Code:
 
 ```bash
-claude --dangerously-load-development-channels plugin:photon@claude-channels
+claude --dangerously-load-development-channels plugin:photon@kennethlng-channels
 ```
 
 ## Caveats
