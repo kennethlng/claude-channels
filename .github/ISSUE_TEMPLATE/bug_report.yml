@@ -1,0 +1,60 @@
+name: Bug report
+description: Report a problem with the channel
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. **Do not report security issues here** — see
+        [SECURITY.md](../blob/main/SECURITY.md). And please redact any secrets
+        (project/webhook secrets, tokens) from logs you paste.
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`@kennethlng/claude-photon-channel` version (or the commit SHA if running from source)"
+      placeholder: "0.1.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: integration
+    attributes:
+      label: Integration
+      options:
+        - photon (real iMessage)
+        - dev (local DevBridge)
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What went wrong, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Configure with ...
+        2. Run `claude --dangerously-load-development-channels plugin:photon@kennethlng-channels`
+        3. Text the number ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant stderr output (run `claude --debug` to capture it). Redact secrets.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This is not a security vulnerability (those go to SECURITY.md).
+          required: true
