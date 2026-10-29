@@ -12,9 +12,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const integration = (env.CHANNEL_INTEGRATION ?? 'photon').trim() === 'dev' ? 'dev' : 'photon'
 
   const portRaw = required(env, 'WEBHOOK_PORT')
-  const webhookPort = Number(portRaw)
-  if (!Number.isInteger(webhookPort) || webhookPort <= 0) {
-    throw new ConfigError(`WEBHOOK_PORT must be a positive integer, got "${portRaw}"`)
+  const webhookPort = /^\d+$/.test(portRaw) ? Number(portRaw) : NaN
+  if (!Number.isInteger(webhookPort) || webhookPort < 1 || webhookPort > 65535) {
+    throw new ConfigError(`WEBHOOK_PORT must be an integer from 1 to 65535, got "${portRaw}"`)
   }
 
   const allowlist = (env.CHANNEL_ALLOWLIST ?? '')
