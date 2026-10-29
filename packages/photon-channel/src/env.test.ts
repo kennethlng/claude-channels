@@ -24,9 +24,37 @@ test('throws ConfigError naming the first missing required var', () => {
   assert.throws(() => loadConfig(partial), (e: unknown) => e instanceof ConfigError && /SPECTRUM_PROJECT_SECRET/.test((e as Error).message))
 })
 
-test('throws on a non-numeric port', () => {
-  assert.throws(() => loadConfig({ ...base, WEBHOOK_PORT: 'abc' }), ConfigError)
-})
+const devBase = { CHANNEL_INTEGRATION: 'dev', WEBHOOK_PORT: '8787', CHANNEL_ALLOWLIST: 'me' }
+
+const portConfigs = [
+  ['photon', base],
+  ['dev', devBase],
+] as const
+
+for (const [mode, env] of portConfigs) {
+  test(`${mode}: accepts the lowest and highest valid WEBHOOK_PORT`, () => {
+    assert.equal(loadConfig({ ...env, WEBHOOK_PORT: '1' }).webhookPort, 1)
+    assert.equal(loadConfig({ ...env, WEBHOOK_PORT: '65535' }).webhookPort, 65535)
+  })
+
+  test(`${mode}: rejects invalid WEBHOOK_PORT values with a clear ConfigError`, () => {
+    const invalid = ['0', '65536', '-1', '1.5', '8787.0', 'abc', '80abc', '1e3', '0x10', '+80', '99999999999999999999']
+    for (const WEBHOOK_PORT of invalid) {
+      assert.throws(
+        () => loadConfig({ ...env, WEBHOOK_PORT }),
+        (e: unknown) =>
+          e instanceof ConfigError &&
+          e.message === `WEBHOOK_PORT must be an integer from 1 to 65535, got "${WEBHOOK_PORT}"`,
+        `expected ${WEBHOOK_PORT} to be rejected`,
+      )
+    }
+  })
+
+  test(`${mode}: still reports a missing WEBHOOK_PORT`, () => {
+    const { WEBHOOK_PORT, ...rest } = env
+    assert.throws(() => loadConfig(rest), (e: unknown) => e instanceof ConfigError && /WEBHOOK_PORT/.test((e as Error).message))
+  })
+}
 
 test('dev transport does not require photon/webhook vars', () => {
   const c = loadConfig({ CHANNEL_INTEGRATION: 'dev', WEBHOOK_PORT: '8787', CHANNEL_ALLOWLIST: 'me' })
