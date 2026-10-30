@@ -28,6 +28,7 @@ export class PermissionStore {
   }
 
   getConversation(requestId: string): string | undefined {
+    if (!this.has(requestId)) return undefined
     return this.open_.get(requestId)?.conversationId
   }
 
